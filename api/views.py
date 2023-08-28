@@ -1,17 +1,16 @@
 from django.shortcuts import render
-
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
-from rest_framework import status
+from rest_framework import status,viewsets
 from django.contrib.auth.hashers import make_password  
-from .serializers import CustomUserSerializer
+from .serializers import CustomUserSerializer,TagSerializer,PropertyTypeSerializer,PropertySerializer
 
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser    
+from .models import CustomUser,Tag,PropertyType,Property    
 from rest_framework.generics import get_object_or_404
-
+from django.http import Http404
 
 
 class LoginAPIView(APIView):
@@ -95,6 +94,201 @@ class ListUserAPIView(APIView):
         custom_users = CustomUser.objects.all()
         serializer = CustomUserSerializer(custom_users, many=True)
         return Response({"success":True,"message":"data get successfully","data":serializer.data}, status=status.HTTP_200_OK)
+
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+        except Http404:
+            data = {
+                "success": False,
+                "message": "Id not found"
+            }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(instance)
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            data = {
+                "success": True,
+                "message": "Data created successfully",
+                "data": serializer.data
+            }
+            return Response(data, status=status.HTTP_201_CREATED)
+        else:
+            data = {
+                "success": False,
+                "message": serializer.errors
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        try:
+            instance = self.get_object()
+        except Http404:
+            data = {
+                "success": False,
+                "message": "Data not found"
+            }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            self.perform_update(serializer)
+            data = {
+                "success": True,
+                "message": "Data updated successfully",
+                "data": serializer.data
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            data = {
+                "success": False,
+                "message": serializer.errors
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+        except Http404:
+            data = {
+                "success": False,
+                "message": "Id not found"
+            }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+        self.perform_destroy(instance)
+        data = {
+            "success": True,
+            "message": "Data deleted successfully"
+        }
+        return Response(data, status=status.HTTP_204_NO_CONTENT)
+class PropertyTypeViewSet(viewsets.ModelViewSet):
+    queryset = PropertyType.objects.all()
+    serializer_class = PropertyTypeSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+        except Http404:
+            data = {
+                "success": False,
+                "message": "Id not found"
+            }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(instance)
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            data = {
+                "success": True,
+                "message": "Data created successfully",
+                "data": serializer.data
+            }
+            return Response(data, status=status.HTTP_201_CREATED)
+        else:
+            data = {
+                "success": False,
+                "message": serializer.errors
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        try:
+            instance = self.get_object()
+        except Http404:
+            data = {
+                "success": False,
+                "message": "Data not found"
+            }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            self.perform_update(serializer)
+            data = {
+                "success": True,
+                "message": "Data updated successfully",
+                "data": serializer.data
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            data = {
+                "success": False,
+                "message": serializer.errors
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+        except Http404:
+            data = {
+                "success": False,
+                "message": "Id not found"
+            }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+        self.perform_destroy(instance)
+        data = {
+            "success": True,
+            "message": "Data deleted successfully"
+        }
+        return Response(data, status=status.HTTP_204_NO_CONTENT)
+
+# class TagViewSet(viewsets.ModelViewSet):
+#     queryset = Tag.objects.all()
+#     serializer_class = TagSerializer
+# class PropertyTypeViewSet(viewsets.ModelViewSet):
+#     queryset = PropertyType.objects.all()
+#     serializer_class = PropertyTypeSerializer
+
+class PropertyViewSet(viewsets.ModelViewSet):
+    queryset = Property.objects.all()
+    serializer_class = PropertySerializer
 
 @api_view(['GET'])
 def index(request):

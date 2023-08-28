@@ -22,3 +22,31 @@ class PropertyType(models.Model):
 
     def __str__(self):
         return self.name
+    
+class Tag(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100)
+    color = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name    
+    
+class Property(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100)
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+    property_type = models.ForeignKey(PropertyType, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='property_images/')  # Use ImageField for images
+    status = models.CharField(max_length=100)
+    price = models.IntegerField()
+    bedrooms = models.IntegerField()
+    bathrooms = models.IntegerField()
+    zipcode = models.IntegerField()
+    description = models.TextField()
+    address = models.TextField()
+    features = models.JSONField()
+    nearest_station = models.JSONField()
+
+
+    def __str__(self):
+        return self.name    
