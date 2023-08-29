@@ -36,7 +36,7 @@ class Property(models.Model):
     name = models.CharField(max_length=100)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
     property_type = models.ForeignKey(PropertyType, on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='property_images/')  # Use ImageField for images
+    image = models.ImageField(upload_to='property_images/', null=True)    
     status = models.CharField(max_length=100)
     price = models.IntegerField()
     bedrooms = models.IntegerField()
