@@ -1,0 +1,38 @@
+property_image/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+__init__.py
+
+# Database
+*.sqlite3
+*.db
+
+# Log files
+*.log
+
+# Media files
+media/
+
+# Static files
+static/
+
+# Secret key
+*.secret
+
+# Environment variables (if using dotenv)
+.env
+
+# IDE-specific files
+.idea/
+.vscode/
+
+# Compiled Python files
+*.pyc
+
+# Local development settings
+*.local
+
+# Mac OS X hidden files
+.DS_Store

@@ -5,14 +5,34 @@ from rest_framework.views import APIView
 from rest_framework import status,viewsets
 from django.contrib.auth.hashers import make_password  
 from .serializers import CustomUserSerializer,TagSerializer,PropertyTypeSerializer,PropertySerializer
-
+import imghdr
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser,Tag,PropertyType,Property    
 from rest_framework.generics import get_object_or_404
 from django.http import Http404
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework import status
+import json,re,os
+import base64
+from PIL import Image
+from io import BytesIO
 
+from django.http import FileResponse
+from django.conf import settings
 
+def catch_all(path):
+    # Construct the absolute path to the requested file
+    file_path = os.path.join(settings.MEDIA_ROOT, path)
+
+    # Check if the file exists and serve it if it does
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'))
+
+    # If the file doesn't exist, return a 404 response
+    else:
+        raise Http404("File not found")
+    
 class LoginAPIView(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -30,7 +50,7 @@ class LoginAPIView(APIView):
                                 'email':user.email,
                                 'role_type':user.role_type,
                                 'access_token': str(refresh.access_token),
-                                'refresh_token': str(refresh),
+                                # 'refresh_token': str(refresh),
                             }
                 }, status=status.HTTP_200_OK)
         else:
@@ -290,11 +310,67 @@ class PropertyViewSet(viewsets.ModelViewSet):
             "data": data
         }
         return Response(response_data, status=status_code)
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        
+        if serializer.is_valid():
+            encoded_images = request.data.get('images', [])
+            self.perform_create(serializer)
+            property_id = serializer.data['id']
+            directory_path = f'property_images/{property_id}'
+            os.makedirs(directory_path, exist_ok=True)
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return self.custom_response(success=True, message="Data retrieved successfully", data=serializer.data)
+            decoded_images = []
+
+            for index, encoded_image in enumerate(encoded_images):
+                try:
+                    image_data = base64.b64decode(encoded_image)
+                    image_format = imghdr.what(None, image_data)
+
+                    if image_format in ['jpeg', 'png']:
+                        image_path = f'{directory_path}/image_{index + 1}.{image_format}'
+                        with open(image_path, 'wb+') as destination:
+                            destination.write(image_data)
+                        decoded_images.append(image_path)
+                except (base64.binascii.Error, TypeError, ValueError):
+                    pass
+
+            return self.custom_response(success=True,message='Data created successfully',
+                data={
+                    'property_id': property_id,
+                    'decoded_images': decoded_images,
+                },
+                status_code=status.HTTP_201_CREATED
+            )
+        else:
+            return self.custom_response(success=False,message=serializer.errors,status_code=status.HTTP_400_BAD_REQUEST)
+
+
+    def list(self, request):
+        properties = Property.objects.all()
+        serialized_properties = PropertySerializer(properties, many=True)
+
+        # Create a dictionary to store property data with image URLs
+        properties_with_image_urls = []
+
+        for property_data in serialized_properties.data:
+            property_id = property_data['id']
+            image_urls = []
+
+            # Assuming that property images are stored in a specific directory
+            image_directory = f'property_images/{property_id}'
+
+            # Check if the directory exists
+            if os.path.exists(image_directory):
+                for filename in os.listdir(image_directory):
+                    # Assuming image files have a specific naming convention
+                    if filename.startswith("image_") and filename.endswith((".jpeg", ".jpg", ".png")):
+                        image_urls.append(f'{request.build_absolute_uri("/")}{image_directory}/{filename}')
+
+            property_data['image_urls'] = image_urls
+            properties_with_image_urls.append(property_data)
+
+        return Response(properties_with_image_urls, status=status.HTTP_200_OK)
 
     def retrieve(self, request, *args, **kwargs):
         try:
@@ -303,15 +379,13 @@ class PropertyViewSet(viewsets.ModelViewSet):
             return self.custom_response(success=False, message="Id not found", status_code=status.HTTP_404_NOT_FOUND)
 
         serializer = self.get_serializer(instance)
-        return self.custom_response(success=True, message="Data retrieved successfully", data=serializer.data)
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            return self.custom_response(success=True, message="Data created successfully", data=serializer.data, status_code=status.HTTP_201_CREATED)
-        else:
-            return self.custom_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        # Assuming the serializer includes an 'image_url' field
+        # that provides the URL to the image associated with the object
+        response_data = {
+            **serializer.data,
+            'image_url': self.get_image_url(serializer.data)  # Implement this method to get the image URL
+        }
+        return self.custom_response(success=True, message="Data retrieved successfully", data=response_data)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
@@ -323,7 +397,13 @@ class PropertyViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         if serializer.is_valid():
             self.perform_update(serializer)
-            return self.custom_response(success=True, message="Data updated successfully", data=serializer.data)
+            # Assuming the serializer includes an 'image_url' field
+            # that provides the URL to the image associated with the updated object
+            response_data = {
+                **serializer.data,
+                'image_url': self.get_image_url(serializer.data)  # Implement this method to get the image URL
+            }
+            return self.custom_response(success=True, message="Data updated successfully", data=response_data)
         else:
             return self.custom_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 

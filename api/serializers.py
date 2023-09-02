@@ -23,4 +23,4 @@ class TagSerializer(serializers.ModelSerializer):
 class PropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
-        fields = ('id', 'name','status', 'tag', 'property_type', 'image', 'price','bedrooms','bathrooms','zipcode','description','address','features','nearest_station')
+        fields = ('id', 'name','status', 'tag', 'property_type','category','city', 'image', 'price','bedrooms','bathrooms','zipcode','description','address','features','nearest_station')
