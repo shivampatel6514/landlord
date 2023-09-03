@@ -370,7 +370,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             property_data['image_urls'] = image_urls
             properties_with_image_urls.append(property_data)
 
-        return Response(properties_with_image_urls, status=status.HTTP_200_OK)
+        return self.custom_response(success=True, message="Get properties successfully", data=properties_with_image_urls) #Response(properties_with_image_urls, status=status.HTTP_200_OK)
 
     def retrieve(self, request, *args, **kwargs):
         try:
