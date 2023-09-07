@@ -29,3 +29,4 @@ urlpatterns = [
     re_path(r'^property_images/(?P<path>.*)$', serve, {'document_root': 'property_images'}),
 
 ]
+# sabdajdb
