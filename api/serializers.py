@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser,PropertyType,Property
+from .models import CustomUser,PropertyType,Property,Contact
 from .models import Tag
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -21,6 +21,13 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'color')
 
 class PropertySerializer(serializers.ModelSerializer):
+    tag = TagSerializer()  # Use the custom TagSerializer for the tag field
+    property_type = PropertyTypeSerializer()  # Use the custom PropertyTypeSerializer for the property_type field
+
     class Meta:
         model = Property
-        fields = ('id', 'name','status', 'tag', 'property_type','category','city', 'image', 'price','bedrooms','bathrooms','zipcode','description','address','features','nearest_station')
+        fields = '__all__'
+class ContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Contact
+        fields = '__all__'        

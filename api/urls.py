@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from .views import CreateUserAPIView,UpdateUserAPIView,DeleteUserAPIView,ListUserAPIView
-from .views import LoginAPIView,TagViewSet,PropertyViewSet,PropertyTypeViewSet
+from .views import LoginAPIView,TagViewSet,PropertyViewSet,PropertyTypeViewSet,ContactViewSet
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from django.conf import settings
@@ -16,6 +16,7 @@ router = DefaultRouter()
 router.register(r'tags', TagViewSet)
 router.register(r'propertyType', PropertyTypeViewSet)
 router.register(r'properties', PropertyViewSet)
+router.register(r'contacts', ContactViewSet)  # Specify 'basename'
 
 urlpatterns = [
     path('', views.index,name="index"),
@@ -25,6 +26,6 @@ urlpatterns = [
     path('update/<str:user_id>/', UpdateUserAPIView.as_view(), name='update-user'),
     path('user/<str:user_id>/delete/', DeleteUserAPIView.as_view(), name='delete-user'),
     path('api/', include(router.urls)),  # Include the router's URLs
-    re_path(r'^media/property_images/(?P<path>.*)$', serve, {'document_root': 'property_images'}),
+    re_path(r'^property_images/(?P<path>.*)$', serve, {'document_root': 'property_images'}),
 
 ]
