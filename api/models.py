@@ -36,7 +36,7 @@ class Property(models.Model):
     name = models.CharField(max_length=100)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
     property_type = models.ForeignKey(PropertyType, on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='property_images/', null=True)    
+    images = models.JSONField(null=True)    
     status = models.CharField(max_length=100)
     category = models.CharField(max_length=100,null=True)
     price = models.IntegerField()
@@ -52,7 +52,7 @@ class Property(models.Model):
 
     def __str__(self):
         return self.name            
-                    
+
 class Contact(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
@@ -61,4 +61,4 @@ class Contact(models.Model):
     message = models.TextField()
 
     def __str__(self):
-        return self.firstName     
+        return self.name     

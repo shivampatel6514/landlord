@@ -60,7 +60,7 @@ MIDDLEWARE = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    'api.custom_auth.EmailBackend',
+    'api.custom_auth.EmailBackend',  
     'django.contrib.auth.backends.ModelBackend',
 
     ]
@@ -68,7 +68,7 @@ AUTHENTICATION_BACKENDS = [
 CORS_ORIGIN_ALLOW_ALL = False
 
 CORS_ORIGIN_WHITELIST = (
-    'http://localhost:3000',
+    'http://localhost: ',
     'http://localhost:8081',
     'http://localhost:3001',
     'http://localhost:3002',

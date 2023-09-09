@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework import status,viewsets
 from django.contrib.auth.hashers import make_password  
-from .serializers import CustomUserSerializer,TagSerializer,PropertyTypeSerializer,PropertySerializer,ContactSerializer
+from .serializers import CustomUserSerializer,TagSerializer,PropertyTypeSerializer,PropertySerializer,ContactSerializer,PropertyListSerializer
 import imghdr
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -303,7 +303,11 @@ class PropertyTypeViewSet(viewsets.ModelViewSet):
 class PropertyViewSet(viewsets.ModelViewSet):
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
-
+    def get_serializer_class(self):
+        if self.action == 'list' or self.action == 'retrieve':
+            return PropertyListSerializer
+        return PropertySerializer
+    
     def custom_response(self, success, message=None, data=None, status_code=status.HTTP_200_OK):
         response_data = {
             "success": success,
@@ -311,193 +315,67 @@ class PropertyViewSet(viewsets.ModelViewSet):
             "data": data
         }
         return Response(response_data, status=status_code)
-    def create(self, request):
+    def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        
         if serializer.is_valid():
-            encoded_images = request.data.get('images', [])
             self.perform_create(serializer)
-            property_id = serializer.data['id']
-            directory_path = f'property_images/{property_id}'
-            os.makedirs(directory_path, exist_ok=True)
-
-            decoded_images = []
-
-            for index, encoded_image in enumerate(encoded_images):
-                try:
-                    image_data = base64.b64decode(encoded_image)
-                    image_format = imghdr.what(None, image_data)
-
-                    if image_format in ['jpeg', 'png']:
-                        image_path = f'{directory_path}/image_{index + 1}.{image_format}'
-                        with open(image_path, 'wb+') as destination:
-                            destination.write(image_data)
-                        decoded_images.append(image_path)
-                except (base64.binascii.Error, TypeError, ValueError):
-                    pass
-
-            return self.custom_response(success=True,message='Data created successfully',
-                data={
-                    'property_id': property_id,
-                    'decoded_images': decoded_images,
-                },
-                status_code=status.HTTP_201_CREATED
-            )
+            data = {
+                "success": True,
+                "message": "Data created successfully",
+                "data": serializer.data
+            }
+            return Response(data, status=status.HTTP_201_CREATED)
         else:
-            return self.custom_response(success=False,message=serializer.errors,status_code=status.HTTP_400_BAD_REQUEST)
-
-
-    def list(self, request):
-        category_type = request.query_params.get('category_type')
-        page_number = request.query_params.get('page')
-
-        # Filter properties by category type if provided
-        properties = Property.objects.all()
-        if category_type:
-            properties = properties.filter(category=category_type)
-
-        # Create a Paginator object with 10 records per page
-        paginator = Paginator(properties, 10)
-
-        try:
-            # Get the requested page
-            page = paginator.page(page_number)
-        except PageNotAnInteger:
-            # If page is not an integer, default to the first page
-            page = paginator.page(1)
-        except EmptyPage:
-            # If page is out of range, return an empty page
-            return self.custom_response(success=True, message="No more pages available", data=[])
-
-        # Serialize the properties for the current page
-        serialized_properties = PropertySerializer(page, many=True)
-
-        if page_number is None:
-            properties = Property.objects.all()
-            serialized_properties = PropertySerializer(properties, many=True)
-
-        # Create a dictionary to store property data with image URLs
-        properties_with_image_urls = []
-
-        for property_data in serialized_properties.data:
-            property_id = property_data['id']
-            image_urls = []
-
-            # Assuming that property images are stored in a specific directory
-            image_directory = f'property_images/{property_id}'
-
-            # Check if the directory exists
-            if os.path.exists(image_directory):
-                for filename in os.listdir(image_directory):
-                    # Assuming image files have a specific naming convention
-                    if filename.startswith("image_") and filename.endswith((".jpeg", ".jpg", ".png")):
-                        image_urls.append(f'{request.build_absolute_uri("/")}{image_directory}/{filename}')
-
-            property_data['image_urls'] = image_urls
-            properties_with_image_urls.append(property_data)
-
-        return self.custom_response(success=True, message="Get properties successfully", data=properties_with_image_urls) #Response(properties_with_image_urls, status=status.HTTP_200_OK)
-
+            data = {
+                "success": False,
+                "message": serializer.errors
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK)
+    
     def retrieve(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
         except Http404:
-            return self.custom_response(success=False, message="Id not found", status_code=status.HTTP_404_NOT_FOUND)
-
-        # Serialize the Tag and PropertyType instances to get their names
-        tag_serializer = TagSerializer(instance.tag)
-        property_type_serializer = PropertyTypeSerializer(instance.property_type)
+            data = {
+                "success": False,
+                "message": "Id not found"
+            }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.get_serializer(instance)
-        # Assuming the serializer includes an 'image_url' field
-        # that provides the URL to the image associated with the object
-        response_data = {
-            **serializer.data,
-            'tag_name': tag_serializer.data['name'],
-            'property_type_name': property_type_serializer.data['name'],
-            'image_urls': self.get_image_urls(serializer.data)  # Use the modified method to get all image URLs
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": serializer.data
         }
-        return self.custom_response(success=True, message="Data retrieved successfully", data=response_data)
-    def get_image_urls(self, data):
-        # Assuming the object's ID is part of the data dictionary
-        object_id = data.get('id')
-
-        # Define the image directory path based on the object's ID
-        image_directory = f'property_images/{object_id}'
-
-        # Check if the directory exists
-        if os.path.exists(image_directory):
-            # List image files in the directory that match the naming convention
-            image_files = [filename for filename in os.listdir(image_directory)
-                        if filename.startswith("image_") and filename.endswith((".jpeg", ".jpg", ".png"))]
-
-            # Construct a list of image URLs for all found images
-            image_urls = [f'{self.request.build_absolute_uri("/")}{image_directory}/{filename}' for filename in image_files]
-            return image_urls
-
-        # If no image was found or the directory doesn't exist, return an empty list
-        return []
+        return Response(data, status=status.HTTP_200_OK)
     
-    def update(self, request, *args, **kwargs):
-        return self.handle_property_creation(request, is_update=True)
-
-    def handle_property_creation(self, request, is_update=False):
-        serializer = self.get_serializer(data=request.data)
-        
-        if serializer.is_valid():
-            encoded_images = request.data.get('images', [])
-            if not is_update:
-                self.perform_create(serializer)
-                property_id = serializer.data['id']
-            else:
-                # For update, get the existing property instance
-                instance = self.get_object()
-                property_id = instance.id
-
-            directory_path = f'property_images/{property_id}'
-            os.makedirs(directory_path, exist_ok=True)
-
-            decoded_images = []
-
-            for index, encoded_image in enumerate(encoded_images):
-                try:
-                    image_data = base64.b64decode(encoded_image)
-                    image_format = imghdr.what(None, image_data)
-
-                    if image_format in ['jpeg', 'png']:
-                        image_path = f'{directory_path}/image_{index + 1}.{image_format}'
-                        with open(image_path, 'wb+') as destination:
-                            destination.write(image_data)
-                        decoded_images.append(image_path)
-                except (base64.binascii.Error, TypeError, ValueError):
-                    pass
-
-            response_data = {
-                'property_id': property_id,
-                'decoded_images': decoded_images,
-            }
-
-            if not is_update:
-                return self.custom_response(success=True, message='Data created successfully',
-                    data=response_data,
-                    status_code=status.HTTP_201_CREATED
-                )
-            else:
-                return self.custom_response(success=True, message='Data updated successfully',
-                    data=response_data,
-                    status_code=status.HTTP_200_OK
-                )
-        else:
-            return self.custom_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
     def destroy(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
         except Http404:
-            return self.custom_response(success=False, message="Id not found", status_code=status.HTTP_404_NOT_FOUND)
+            data = {
+                "success": False,
+                "message": "Id not found"
+            }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
 
         self.perform_destroy(instance)
-        return self.custom_response(success=True, message="Data deleted successfully", status_code=status.HTTP_204_NO_CONTENT)
-    
+        data = {
+            "success": True,
+            "message": "Data deleted successfully"
+        }
+        return Response(data, status=status.HTTP_204_NO_CONTENT)
+
 class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer

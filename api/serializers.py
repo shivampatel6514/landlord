@@ -10,6 +10,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 
 class PropertyTypeSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = PropertyType
         fields = ['id', 'name']
@@ -21,12 +22,19 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'color')
 
 class PropertySerializer(serializers.ModelSerializer):
-    tag = TagSerializer()  # Use the custom TagSerializer for the tag field
-    property_type = PropertyTypeSerializer()  # Use the custom PropertyTypeSerializer for the property_type field
-
+    # tag = TagSerializer()  # Use the custom TagSerializer for the tag field
+    # property_type = PropertyTypeSerializer()  # Use the custom PropertyTypeSerializer for the property_type field
+    
     class Meta:
         model = Property
         fields = '__all__'
+
+class PropertyListSerializer(serializers.ModelSerializer):
+    tag = TagSerializer()  # Use the custom TagSerializer for the tag field
+    property_type = PropertyTypeSerializer()  # Use the custom PropertyTypeSerializer for the property_type field
+    class Meta:
+        model = Property
+        fields = '__all__'                
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
