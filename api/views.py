@@ -12,12 +12,14 @@ from .models import CustomUser,Tag,PropertyType,Property,Contact
 from rest_framework.generics import get_object_or_404
 from django.http import Http404
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework import status
+from rest_framework import status,pagination
 import json,re,os
 import base64
 from PIL import Image
 from io import BytesIO
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 from django.http import FileResponse
 from django.conf import settings
@@ -111,6 +113,8 @@ class DeleteUserAPIView(APIView):
             return Response({"success":False,"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
         
 class ListUserAPIView(APIView):
+    # authentication_classes = [SessionAuthentication, BasicAuthentication]
+    # permission_classes = [IsAuthenticated]
     def get(self, request):
         custom_users = CustomUser.objects.all()
         serializer = CustomUserSerializer(custom_users, many=True)
@@ -332,14 +336,50 @@ class PropertyViewSet(viewsets.ModelViewSet):
             }
             return Response(data, status=status.HTTP_400_BAD_REQUEST)
     def list(self, request, *args, **kwargs):
+        page = request.query_params.get('page')
+        category_type = request.query_params.get('category_type')
+        
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        if page is None and category_type is None:
+            print("hello")
+            serializer = self.get_serializer(queryset, many=True)
+            data = {
+                "success": True,
+                "message": "Data retrieved successfully",
+                "data": serializer.data
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        
+        if category_type:
+            queryset = queryset.filter(category=category_type)
+        
+        paginator = pagination.PageNumberPagination()
+        paginator.page_size = 12 
+        
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        
+        serializer = self.get_serializer(paginated_queryset, many=True)
+        
         data = {
             "success": True,
             "message": "Data retrieved successfully",
-            "data": serializer.data
+            "data": {
+                    "results": serializer.data,  # Serialize properties
+                    "pagination": {
+                        "total_pages": paginator.page.paginator.num_pages
+                    }
+            }
         }
         return Response(data, status=status.HTTP_200_OK)
+    # def list(self, request, *args, **kwargs):
+    #     queryset = self.get_queryset()
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     data = {
+    #         "success": True,
+    #         "message": "Data retrieved successfully",
+    #         "data": serializer.data
+    #     }
+    #     return Response(data, status=status.HTTP_200_OK)
     
     def retrieve(self, request, *args, **kwargs):
         try:
