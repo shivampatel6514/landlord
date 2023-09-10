@@ -20,10 +20,11 @@ from io import BytesIO
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
-
+from rest_framework.authtoken.models import Token
 from django.http import FileResponse
 from django.conf import settings
-
+from django.contrib.auth.models import update_last_login
+import secrets
 def catch_all(path):
     # Construct the absolute path to the requested file
     file_path = os.path.join(settings.MEDIA_ROOT, path)
@@ -35,7 +36,9 @@ def catch_all(path):
     # If the file doesn't exist, return a 404 response
     else:
         raise Http404("File not found")
-    
+
+
+
 class LoginAPIView(APIView):
     def post(self, request):
         email = request.data.get('email')
@@ -53,7 +56,7 @@ class LoginAPIView(APIView):
                                 'email':user.email,
                                 'role_type':user.role_type,
                                 'access_token': str(refresh.access_token),
-                                # 'refresh_token': str(refresh),
+                                'refresh_token': str(refresh),
                             }
                 }, status=status.HTTP_200_OK)
         else:
@@ -113,8 +116,8 @@ class DeleteUserAPIView(APIView):
             return Response({"success":False,"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
         
 class ListUserAPIView(APIView):
-    # authentication_classes = [SessionAuthentication, BasicAuthentication]
-    # permission_classes = [IsAuthenticated]
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         custom_users = CustomUser.objects.all()
         serializer = CustomUserSerializer(custom_users, many=True)
