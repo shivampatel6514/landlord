@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,permission_classes,authentication_classes
 from rest_framework.views import APIView
 from rest_framework import status,viewsets
 from django.contrib.auth.hashers import make_password  
@@ -25,6 +25,9 @@ from django.http import FileResponse
 from django.conf import settings
 from django.contrib.auth.models import update_last_login
 import secrets
+from rest_framework_simplejwt.authentication import JWTTokenUserAuthentication
+
+
 def catch_all(path):
     # Construct the absolute path to the requested file
     file_path = os.path.join(settings.MEDIA_ROOT, path)
@@ -63,6 +66,9 @@ class LoginAPIView(APIView):
             return Response({"success":False,'message': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 class CreateUserAPIView(APIView):
+
+    authentication_classes = [JWTTokenUserAuthentication]
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         data = request.data.copy()  # Create a copy of the request data
         password = data.pop('password', None)  # Remove the password from data and get it
@@ -86,7 +92,10 @@ class CreateUserAPIView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UpdateUserAPIView(APIView):    
+class UpdateUserAPIView(APIView):
+    
+    authentication_classes = [JWTTokenUserAuthentication]
+    permission_classes = [IsAuthenticated]    
     def put(self, request, user_id):
         user = get_object_or_404(CustomUser, pk=user_id)  # Get the user instance by user_id
 
@@ -103,6 +112,9 @@ class UpdateUserAPIView(APIView):
     
 
 class DeleteUserAPIView(APIView):
+
+    authentication_classes = [JWTTokenUserAuthentication]
+    permission_classes = [IsAuthenticated]
     def delete(self, request, user_id):
         try:
             user = get_object_or_404(CustomUser, pk=user_id)  # Get the user instance by user_id
@@ -116,14 +128,31 @@ class DeleteUserAPIView(APIView):
             return Response({"success":False,"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
         
 class ListUserAPIView(APIView):
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    authentication_classes = [JWTTokenUserAuthentication]
     permission_classes = [IsAuthenticated]
     def get(self, request):
         custom_users = CustomUser.objects.all()
         serializer = CustomUserSerializer(custom_users, many=True)
         return Response({"success":True,"message":"data get successfully","data":serializer.data}, status=status.HTTP_200_OK)
 
+class ListTagViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK)
 class TagViewSet(viewsets.ModelViewSet):
+
+    authentication_classes = [JWTTokenUserAuthentication]
+    permission_classes = [IsAuthenticated]
+
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
 
@@ -214,7 +243,25 @@ class TagViewSet(viewsets.ModelViewSet):
             "message": "Data deleted successfully"
         }
         return Response(data, status=status.HTTP_204_NO_CONTENT)
+     
+class ListPropertyTypeViewSet(viewsets.ReadOnlyModelViewSet):
+
+    queryset = PropertyType.objects.all()
+    serializer_class = PropertyTypeSerializer 
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK)
+   
 class PropertyTypeViewSet(viewsets.ModelViewSet):
+
+    authentication_classes = [JWTTokenUserAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = PropertyType.objects.all()
     serializer_class = PropertyTypeSerializer
 
@@ -306,8 +353,49 @@ class PropertyTypeViewSet(viewsets.ModelViewSet):
             "message": "Data deleted successfully"
         }
         return Response(data, status=status.HTTP_204_NO_CONTENT)
-
+class ListPropertyViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Property.objects.all()
+    serializer_class = PropertySerializer
+    def list(self, request, *args, **kwargs):
+        page = request.query_params.get('page')
+        category_type = request.query_params.get('category_type')
+        
+        queryset = self.get_queryset()
+        if page is None and category_type is None:
+            print("hello")
+            serializer = self.get_serializer(queryset, many=True)
+            data = {
+                "success": True,
+                "message": "Data retrieved successfully",
+                "data": serializer.data
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        
+        if category_type:
+            queryset = queryset.filter(category=category_type)
+        
+        paginator = pagination.PageNumberPagination()
+        paginator.page_size = 12 
+        
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        
+        serializer = self.get_serializer(paginated_queryset, many=True)
+        
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": {
+                    "results": serializer.data,  # Serialize properties
+                    "pagination": {
+                        "total_pages": paginator.page.paginator.num_pages
+                    }
+            }
+        }
+        return Response(data, status=status.HTTP_200_OK)
 class PropertyViewSet(viewsets.ModelViewSet):
+
+    authentication_classes = [JWTTokenUserAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
     def get_serializer_class(self):
@@ -419,14 +507,14 @@ class PropertyViewSet(viewsets.ModelViewSet):
         }
         return Response(data, status=status.HTTP_204_NO_CONTENT)
 
-class ContactViewSet(viewsets.ModelViewSet):
-    queryset = Contact.objects.all()
+class CreateContactViewSet(viewsets.GenericViewSet):
     serializer_class = ContactSerializer
-    
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            self.perform_create(serializer)
+            # Save the object to the database
+            serializer.save()
             data = {
                 "success": True,
                 "message": "Data created successfully",
@@ -439,28 +527,12 @@ class ContactViewSet(viewsets.ModelViewSet):
                 "message": serializer.errors
             }
             return Response(data, status=status.HTTP_400_BAD_REQUEST)
+class ListContactViewSet(viewsets.ReadOnlyModelViewSet):
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        data = {
-            "success": True,
-            "message": "Data retrieved successfully",
-            "data": serializer.data
-        }
-        return Response(data, status=status.HTTP_200_OK)
-
-       
-# class TagViewSet(viewsets.ModelViewSet):
-#     queryset = Tag.objects.all()
-#     serializer_class = TagSerializer
-# class PropertyTypeViewSet(viewsets.ModelViewSet):
-#     queryset = PropertyType.objects.all()
-#     serializer_class = PropertyTypeSerializer
-
-# class PropertyViewSet(viewsets.ModelViewSet):
-#     queryset = Property.objects.all()
-#     serializer_class = PropertySerializer
+    authentication_classes = [JWTTokenUserAuthentication]
+    permission_classes = [IsAuthenticated]
+    queryset = Contact.objects.all()
+    serializer_class = ContactSerializer
 
 @api_view(['GET'])
 def index(request):

@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
-from .views import CreateUserAPIView,UpdateUserAPIView,DeleteUserAPIView,ListUserAPIView
-from .views import LoginAPIView,TagViewSet,PropertyViewSet,PropertyTypeViewSet,ContactViewSet
+from .views import CreateUserAPIView,UpdateUserAPIView,DeleteUserAPIView,ListUserAPIView,ListTagViewSet
+from .views import LoginAPIView,TagViewSet,PropertyViewSet,PropertyTypeViewSet,ListContactViewSet,CreateContactViewSet,ListPropertyTypeViewSet,ListPropertyViewSet
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from django.conf import settings
@@ -14,9 +14,16 @@ from django.views.static import serve
 
 router = DefaultRouter()
 router.register(r'tags', TagViewSet)
+router.register(r'list-tags', ListTagViewSet, basename='list-tag')
+
 router.register(r'propertyType', PropertyTypeViewSet)
+router.register(r'list-propertyType', ListPropertyTypeViewSet, basename='list-propertyType')
+
 router.register(r'properties', PropertyViewSet)
-router.register(r'contacts', ContactViewSet)  # Specify 'basename'
+router.register(r'list-properties', ListPropertyViewSet ,basename='list-properties')
+
+router.register(r'contacts', ListContactViewSet, basename='list-contact')
+router.register(r'create-contact', CreateContactViewSet, basename='create-contact')
 
 urlpatterns = [
     path('', views.index,name="index"),
