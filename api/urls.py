@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import CreateUserAPIView,UpdateUserAPIView,DeleteUserAPIView,ListUserAPIView,ListTagViewSet
+from .views import CountData,CreateUserAPIView,UpdateUserAPIView,DeleteUserAPIView,ListUserAPIView,ListTagViewSet
 from .views import LoginAPIView,TagViewSet,PropertyViewSet,PropertyTypeViewSet,ListContactViewSet,CreateContactViewSet,ListPropertyTypeViewSet,ListPropertyViewSet
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
@@ -32,6 +32,9 @@ urlpatterns = [
     path('create/', CreateUserAPIView.as_view(), name='create-user'),
     path('update/<str:user_id>/', UpdateUserAPIView.as_view(), name='update-user'),
     path('user/<str:user_id>/delete/', DeleteUserAPIView.as_view(), name='delete-user'),
+    path('api/count-data/', CountData.as_view(), name='count-data'),
+    
+    
     path('api/', include(router.urls)),  # Include the router's URLs
     re_path(r'^property_images/(?P<path>.*)$', serve, {'document_root': 'property_images'}),
 

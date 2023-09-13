@@ -91,6 +91,46 @@ class CreateUserAPIView(APIView):
             "message": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+class CountData(APIView):
+
+    authentication_classes = [JWTTokenUserAuthentication]
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+
+        admin_count = CustomUser.objects.filter(role_type='admin').count()
+        staff_count = CustomUser.objects.filter(role_type='staff').count()
+        all_user_count = CustomUser.objects.all().count()
+
+        enquiry_count = Contact.objects.all().count()
+        
+        all_property_count = Property.objects.all().count()
+        sales_count = Property.objects.filter(category='sales').count()
+        lettings_count = Property.objects.filter(category='lettings').count()
+        commercial_count = Property.objects.filter(category='commercial').count()
+        international_count = Property.objects.filter(category='international').count()
+        
+        data = {
+            "user_counts": {
+                "admin_count": admin_count,
+                "staff_count": staff_count,
+                "all_user_count": all_user_count,
+            },
+            "property_counts": {
+                "all_property_count": all_property_count,
+                "sales_count": sales_count,
+                "lettings_count": lettings_count,
+                "commercial_count": commercial_count,
+                "international_count": international_count,
+            },
+            "enquiry_count": enquiry_count,
+        }
+
+        return Response({
+            "success": True,
+            "message": "Data retrieve sucessfully",
+            "data": data,
+
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 class UpdateUserAPIView(APIView):
     
