@@ -355,7 +355,7 @@ class PropertyTypeViewSet(viewsets.ModelViewSet):
         return Response(data, status=status.HTTP_204_NO_CONTENT)
 class ListPropertyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Property.objects.all()
-    serializer_class = PropertySerializer
+    serializer_class = PropertyListSerializer
     def list(self, request, *args, **kwargs):
         page = request.query_params.get('page')
         category_type = request.query_params.get('category_type')
