@@ -396,6 +396,31 @@ class PropertyTypeViewSet(viewsets.ModelViewSet):
 class ListPropertyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Property.objects.all()
     serializer_class = PropertyListSerializer
+    # for slug
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            slug = kwargs.get('pk')
+            print(slug)
+            # instance = self.get_object()
+            instance = Property.objects.filter(slug=slug).first()
+            print(instance)
+            if instance is None:
+                raise Http404 
+        except Http404:
+            data = {
+                "success": False,
+                "message": "Slug not found"
+            }
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(instance)
+        data = {
+            "success": True,
+            "message": "Data retrieved successfully",
+            "data": serializer.data
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
     def list(self, request, *args, **kwargs):
         page = request.query_params.get('page')
         category_type = request.query_params.get('category_type')

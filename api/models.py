@@ -33,6 +33,7 @@ class Tag(models.Model):
     
 class Property(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    slug = models.SlugField(unique=True)  # Add the slug field here
     name = models.CharField(max_length=100)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
     property_type = models.ForeignKey(PropertyType, on_delete=models.CASCADE)
