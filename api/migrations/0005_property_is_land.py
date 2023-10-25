@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='property',
             name='is_land',
-            field=models.BooleanField(default=True),
+            field=models.BooleanField(default=False),
             preserve_default=False,
         ),
     ]
