@@ -49,7 +49,7 @@ class Property(models.Model):
     address = models.TextField()
     features = models.JSONField()
     nearest_station = models.JSONField()
-
+    is_land = models.BooleanField()
 
     def __str__(self):
         return self.name            
