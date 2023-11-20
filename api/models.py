@@ -43,6 +43,7 @@ class Property(models.Model):
     price = models.IntegerField()
     bedrooms = models.IntegerField()
     bathrooms = models.IntegerField()
+    reception = models.IntegerField(null=True)
     zipcode = models.CharField(max_length=20)
     city = models.CharField(max_length=100,null=True)
     description = models.TextField()
