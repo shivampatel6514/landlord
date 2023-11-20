@@ -43,6 +43,7 @@ class Property(models.Model):
     price = models.IntegerField()
     bedrooms = models.IntegerField()
     bathrooms = models.IntegerField()
+    reception = models.IntegerField(null=True)
     zipcode = models.CharField(max_length=20)
     city = models.CharField(max_length=100,null=True)
     description = models.TextField()
@@ -62,4 +63,4 @@ class Contact(models.Model):
     message = models.TextField()
 
     def __str__(self):
-        return self.name     
+        return self.name
