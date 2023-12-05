@@ -41,16 +41,16 @@ class Property(models.Model):
     status = models.CharField(max_length=100)
     category = models.CharField(max_length=100,null=True)
     price = models.IntegerField()
-    bedrooms = models.IntegerField()
-    bathrooms = models.IntegerField()
+    bedrooms = models.IntegerField(null=True)
+    bathrooms = models.IntegerField(null=True)
     reception = models.IntegerField(null=True)
     zipcode = models.CharField(max_length=20)
     city = models.CharField(max_length=100,null=True)
     description = models.TextField()
     address = models.TextField()
     features = models.JSONField()
-    nearest_station = models.JSONField()
-    is_land = models.BooleanField()
+    nearest_station = models.JSONField(null=True)
+    is_land = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name            
